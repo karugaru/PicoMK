@@ -12,7 +12,7 @@
 
 #define USE_PINNACLE 1 // Pinnacleトラックパッドの使用有無
 
-#ifdef USE_PINNACLE
+#if USE_PINNACLE
 
 #include "../pinnacle/pinnacle.h"
 
