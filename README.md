@@ -20,11 +20,15 @@
   PicoMKはそれらの制約を回避することを目的としています。
 - 逆に、Picoで有線接続を使用する場合や、他のマイコンを使用する場合は、上記のようなファームウェアを使用するべきです。
 
+## ビルド手順
+
+- ビルドするにはこのリポジトリをクローンし、vscodeの拡張機能の[Raspberry Pi Pico](https://marketplace.visualstudio.com/items?itemName=raspberry-pi.raspberry-pi-pico)を使用する必要があります。
+
 ## 使い方
 
-- まだ開発中のため、ドキュメントは不完全で、使用方法はコードを読む必要があります。
-- ビルドするにはこのリポジトリをクローンし、vscodeの拡張機能の[Raspberry Pi Pico](https://marketplace.visualstudio.com/items?itemName=raspberry-pi.raspberry-pi-pico)を使用する必要があります。
-- 物理ボードに対する設定は`settings/board.h`で行います。
-- キーマップの定義は、`settings/keymap.h`で行います。使用できるキーコードは`keyboard/code.h`に定義されています。
-- その他固有の設定は`main.c`を参照してください。
+- まだ開発中のため、ドキュメントは不完全です。詳しい使用方法はソースコードを直接参照してください。
+- 物理ボードに対する設定は[settings/board.h](settings/board.h)で行います。
+- キーマップの定義は、[settings/keymap.h](settings/keymap.h)で行います。使用できるキーコードは[keyboard/code.h](keyboard/code.h)に定義されています。
+- マウスキーやトラックパッドなどの設定は[settings/settings.h](settings/settings.h)で行います。
+- その他固有の設定は[main.c](main.c)を参照してください。
 - デフォルトの設定（及び実装）では、キーマトリクスとトラックパッド(cirque pinnable)とフルカラーLED（WS2812B）を使用する前提となっています。

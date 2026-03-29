@@ -29,7 +29,7 @@ bool peripheral_init(void) {
       return false;
     }
     pinnacle_set_speed(PINNACLE_ACCEL, PINNACLE_SPEED);
-    pinnacle_set_rotation(PINNACLE_ROTATE_270);
+    pinnacle_set_rotation(PINNACLE_ROTATE);
     pointing_device_pinnacle = event_request_pointing_device_id();
     if (pointing_device_pinnacle < 0) {
       DEBUG_PRINT("failed to request pointing device id for pinnacle\n");
