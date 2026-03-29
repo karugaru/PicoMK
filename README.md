@@ -23,6 +23,7 @@
 ## ビルド手順
 
 - ビルドするにはこのリポジトリをクローンし、vscodeの拡張機能の[Raspberry Pi Pico](https://marketplace.visualstudio.com/items?itemName=raspberry-pi.raspberry-pi-pico)を使用する必要があります。
+- [ビルド手順.md](docs/ビルド手順.md)を参照してください。
 
 ## 使い方
 
