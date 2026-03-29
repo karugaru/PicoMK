@@ -65,7 +65,7 @@ int main() {
     sleep_ms(100);
   }
 #endif
-  DEBUG_PRINT("remopicon v1 start\n");
+  DEBUG_PRINT("picomk v1 start\n");
 
   // LEDの初期化
   led_init(GPIO_LED_PIN, LED_BRIGHTNESS);
