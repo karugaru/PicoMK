@@ -28,19 +28,19 @@ set(PICO_BOARD pico_w CACHE STRING "Board type")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(remopicon C CXX ASM)
+project(picomk C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 file(GLOB SRC_FILES CONFIGURE_DEPENDS *.c ble/*.c pinnacle/*.c keyboard/*.c led/*.c settings/*.c hid/*.c state/*.c peripheral/*.c)
-add_executable(remopicon ${SRC_FILES})
+add_executable(picomk ${SRC_FILES})
 
-pico_generate_pio_header(remopicon ${CMAKE_CURRENT_LIST_DIR}/led/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/led)
+pico_generate_pio_header(picomk ${CMAKE_CURRENT_LIST_DIR}/led/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/led)
 
 # pull in common dependencies
-target_link_libraries(remopicon
+target_link_libraries(picomk
     pico_stdlib
     pico_btstack_ble
     pico_btstack_cyw43
@@ -48,19 +48,19 @@ target_link_libraries(remopicon
     hardware_i2c
 )
 
-pico_enable_stdio_usb(remopicon 1)
-pico_enable_stdio_uart(remopicon 0)
+pico_enable_stdio_usb(picomk 1)
+pico_enable_stdio_uart(picomk 0)
 
 # btstack
-target_include_directories(remopicon PRIVATE
+target_include_directories(picomk PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}
     )
-pico_btstack_make_gatt_header(remopicon PRIVATE "${CMAKE_CURRENT_LIST_DIR}/ble/remopicon.gatt")
+pico_btstack_make_gatt_header(picomk PRIVATE "${CMAKE_CURRENT_LIST_DIR}/ble/picomk.gatt")
 
 # create map/bin/hex file etc.
-pico_add_extra_outputs(remopicon)
+pico_add_extra_outputs(picomk)
 
-target_compile_definitions(remopicon PRIVATE
+target_compile_definitions(picomk PRIVATE
     #WANT_HCI_DUMP=1 # This enables btstack debug
     DEBUG_MAIN=0
     DEBUG_BLE=0
@@ -72,7 +72,7 @@ target_compile_definitions(remopicon PRIVATE
     )
 
 # ROM and RAM utilization set to display at build time
-target_link_options(remopicon PRIVATE -Xlinker --print-memory-usage)
+target_link_options(picomk PRIVATE -Xlinker --print-memory-usage)
 
 # Set warnings to display at build time
-# target_compile_options(remopicon PRIVATE -Wall -Wextra)
+# target_compile_options(picomk PRIVATE -Wall -Wextra)

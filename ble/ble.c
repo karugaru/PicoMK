@@ -7,7 +7,7 @@
 #include "../state/state.h"
 #include "advertising_data.h"
 #include "ble.h"
-#include "remopicon.h"
+#include "picomk.h"
 
 #ifndef DEBUG_BLE
 #define DEBUG_BLE 0
