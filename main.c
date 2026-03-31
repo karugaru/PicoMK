@@ -14,6 +14,7 @@
 #include "settings/settings.h"
 #include "settings/users.h"
 #include "state/state.h"
+#include "usb/usb_hid.h"
 
 #ifndef DEBUG_MAIN
 #define DEBUG_MAIN 0
@@ -61,9 +62,7 @@ int main() {
   stdio_init_all();
 
 #if DEBUG_MAIN
-  while (!stdio_usb_connected()) {
-    sleep_ms(100);
-  }
+  sleep_ms(2000); // UARTデバッグ用: 接続待ち
 #endif
   DEBUG_PRINT("picomk v1 start\n");
 
@@ -91,6 +90,10 @@ int main() {
 
   // マトリクス以外の周辺機器の初期化
   peripheral_init();
+
+  // USB HIDの初期化
+  usb_hid_init();
+
   // 1ms周期でタイマ割り込みを設定
   add_repeating_timer_ms(1, pico_timer_callback, NULL, &pico_timer);
 
@@ -99,9 +102,13 @@ int main() {
 
   // メインループ
   while (true) {
+    // USB HIDタスク処理（TinyUSBデバイスタスク + レポート送信）
+    usb_hid_task();
+
+    // BLE処理
     async_context_poll(cyw43_arch_async_context());
     async_context_wait_for_work_until(cyw43_arch_async_context(),
-                                      at_the_end_of_time);
+                                      make_timeout_time_ms(10));
   }
 
   state_set_system(STATE_RESET);

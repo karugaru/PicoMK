@@ -51,6 +51,10 @@ void state_set_system(state_system_t new_state) {
     led_put_rgb(0, 0, 0);
     current_state = new_state;
     return;
+  case STATE_USB_CONNECTED:
+    led_put_rgb(0, 0, 0);
+    current_state = new_state;
+    return;
   case STATE_BOOTLOADER:
     current_state = new_state;
     led_put_rgb(255, 255, 255);

@@ -34,7 +34,7 @@ project(picomk C CXX ASM)
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
-file(GLOB SRC_FILES CONFIGURE_DEPENDS *.c ble/*.c pinnacle/*.c keyboard/*.c led/*.c settings/*.c hid/*.c state/*.c peripheral/*.c)
+file(GLOB SRC_FILES CONFIGURE_DEPENDS *.c ble/*.c pinnacle/*.c keyboard/*.c led/*.c settings/*.c hid/*.c state/*.c peripheral/*.c usb/*.c)
 add_executable(picomk ${SRC_FILES})
 
 pico_generate_pio_header(picomk ${CMAKE_CURRENT_LIST_DIR}/led/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/led)
@@ -46,10 +46,12 @@ target_link_libraries(picomk
     pico_btstack_cyw43
     pico_cyw43_arch_none
     hardware_i2c
+    tinyusb_device
+    pico_unique_id
 )
 
-pico_enable_stdio_usb(picomk 1)
-pico_enable_stdio_uart(picomk 0)
+pico_enable_stdio_usb(picomk 0)
+pico_enable_stdio_uart(picomk 1)
 
 # btstack
 target_include_directories(picomk PRIVATE
