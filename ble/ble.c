@@ -88,6 +88,10 @@ void ble_setup(void) {
  * @param power trueでON、falseでOFF
  */
 void ble_power_set(bool power) {
+  if (power == ble_enabled) {
+    return;
+  }
+
   ble_enabled = power;
   if (power) {
     hci_power_control(HCI_POWER_ON);
@@ -101,12 +105,9 @@ void ble_power_set(bool power) {
 
 /**
  * @brief btstackの処理ワーカーを起動する。
- *        BLEが無効の場合は何もしない。
  */
 void ble_poll(void) {
-  if (ble_enabled) {
     btstack_run_loop_poll_data_sources_from_irq();
-  }
 }
 
 /**

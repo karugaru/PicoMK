@@ -1,7 +1,9 @@
 #include <hardware/watchdog.h>
 #include <pico/bootrom.h>
 
+#include "../ble/ble.h"
 #include "../led/led.h"
+#include "../usb/usb_hid.h"
 #include "state.h"
 
 typedef struct {
@@ -24,7 +26,44 @@ static const state_led_entry_t state_led_table[] = {
 // clang-format on
 
 volatile static state_system_t current_state = STATE_RESET;
+volatile static connection_preference_t conn_pref = CONN_PREF_USB;
 
+/**
+ * @brief システムの優先接続モードを設定する。
+ * @param pref 設定する優先接続モード
+ */
+void state_set_connection_preference(connection_preference_t pref) {
+  conn_pref = pref;
+}
+
+/**
+ * @brief システムの優先接続モードを取得する。
+ * @return 現在の優先接続モード
+ */
+connection_preference_t state_get_connection_preference(void) {
+  return conn_pref;
+}
+
+/**
+ * @brief 優先接続モードを切り替える。
+ * @param pref 切り替える優先接続モード
+ */
+void state_switch_connection(connection_preference_t pref) {
+  conn_pref = pref;
+  // BLE優先に切り替えた場合、BLEが有効でなければ有効にする
+  if (pref == CONN_PREF_BLE) {
+    if (!ble_is_enabled()) {
+      ble_power_set(true);
+    }
+    state_set_system(ble_is_connected() ? STATE_BLE_CONNECTED
+                                        : STATE_BLE_WAITING);
+  }
+}
+
+/**
+ * @brief システム状態を設定する。
+ * @param new_state 設定する新しい状態
+ */
 void state_set_system(state_system_t new_state) {
   const state_led_entry_t *entry = &state_led_table[new_state];
 
@@ -49,4 +88,8 @@ void state_set_system(state_system_t new_state) {
   }
 }
 
+/**
+ * @brief システムの現在の状態を取得する。
+ * @return 現在のシステム状態
+ */
 state_system_t state_get_system(void) { return current_state; }

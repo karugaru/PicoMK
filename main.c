@@ -25,6 +25,7 @@
 #else
 #define DEBUG_PRINT(...)
 #endif
+
 static async_at_time_worker_t picomk_worker;
 
 /**
@@ -41,11 +42,40 @@ static void picomk_worker_process(async_context_t *context,
   // 定期処理を実行
   event_process_periodic();
 
-  // TinyUSBデバイスタスクを実行
-  usb_hid_task();
+  // 接続モードとトランスポートの状態を取得
+  connection_preference_t connection_pref = state_get_connection_preference();
+  bool usb_active = usb_hid_is_active();
+  bool ble_enabled = ble_is_enabled();
+  bool ble_connected = ble_is_connected();
 
-  // btstackの処理ワーカーを起動
-  ble_poll();
+  // USB優先時、USB接続状態に応じてBLEを動的に制御
+  if (connection_pref == CONN_PREF_USB) {
+    if (usb_active && ble_enabled) {
+      ble_power_set(false); // USB接続中はBLEをOFFにして省電力
+    } else if (!usb_active && !ble_enabled) {
+      ble_power_set(true); // USB未接続時はBLEをONにしてフォールバック
+    }
+  }
+
+  // トランスポートの決定
+  bool use_ble, use_usb;
+  if (connection_pref == CONN_PREF_BLE) {
+    use_ble = ble_connected;
+    use_usb = !ble_connected && usb_active;
+  } else {
+    use_usb = usb_active;
+    use_ble = !usb_active && ble_connected;
+  }
+
+  // USB定期処理
+  if (!use_ble) {
+    usb_hid_task();
+  }
+
+  // BLE定期処理
+  if (ble_enabled) {
+    ble_poll();
+  }
 
   // 周辺機器のイベント処理（I2C通信を含むため必要な時のみ実行）
   if (peripheral_require_event_processing()) {
@@ -54,10 +84,10 @@ static void picomk_worker_process(async_context_t *context,
 
   // HIDイベントがあればアクティブなトランスポートにレポート送信を要求
   if (event_has_event()) {
-    if (usb_hid_is_active()) {
-      usb_hid_send_reports();
-    } else if (ble_is_connected()) {
+    if (use_ble) {
       ble_request_can_send();
+    } else if (use_usb) {
+      usb_hid_send_reports();
     }
   }
 

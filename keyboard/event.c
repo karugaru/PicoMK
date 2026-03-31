@@ -238,6 +238,34 @@ void event_process_standard(icode_t icode, bool pressed) {
     return;
   }
 
+  // 接続モード切替コードの処理
+  if (pressed) {
+    connection_preference_t new_pref;
+    bool handled = true;
+
+    switch (icode) {
+    case ISC_CONN_TOGGLE:
+      new_pref = (state_get_connection_preference() == CONN_PREF_USB)
+                     ? CONN_PREF_BLE
+                     : CONN_PREF_USB;
+      break;
+    case ISC_CONN_USB:
+      new_pref = CONN_PREF_USB;
+      break;
+    case ISC_CONN_BLE:
+      new_pref = CONN_PREF_BLE;
+      break;
+    default:
+      handled = false;
+      break;
+    }
+
+    if (handled) {
+      state_switch_connection(new_pref);
+      return;
+    }
+  }
+
   // 標準キーコードの場合
   if (icode >= ICODE_STANDARD_START && icode <= ICODE_STANDARD_END) {
     keyboard_modifiered_code_t keycode = (keyboard_modifiered_code_t)icode;
