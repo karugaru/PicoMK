@@ -143,6 +143,7 @@ int main() {
 
   // 初期化完了
   state_set_system(STATE_INIT_COMPLETE);
+  state_refresh_runtime();
 
   // メインループ
   while (true) {

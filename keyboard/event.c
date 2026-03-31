@@ -261,7 +261,7 @@ void event_process_standard(icode_t icode, bool pressed) {
     }
 
     if (handled) {
-      state_switch_connection(new_pref);
+      state_switch_connection_preference(new_pref);
       return;
     }
   }

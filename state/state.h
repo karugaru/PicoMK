@@ -7,6 +7,7 @@ typedef enum {
   STATE_SYS_INIT,
   STATE_BLE_INIT,
   STATE_INIT_COMPLETE,
+  STATE_USB_WAITING,
   STATE_BLE_WAITING,
   STATE_BLE_CONNECTED,
   STATE_USB_CONNECTED,
@@ -23,6 +24,8 @@ state_system_t state_get_system(void);
 
 void state_set_connection_preference(connection_preference_t pref);
 connection_preference_t state_get_connection_preference(void);
-void state_switch_connection(connection_preference_t pref);
+
+void state_switch_connection_preference(connection_preference_t pref);
+void state_refresh_runtime(void);
 
 #endif // STATE_H

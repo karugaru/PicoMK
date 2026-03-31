@@ -155,7 +155,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel,
   case HCI_EVENT_DISCONNECTION_COMPLETE:
     con_handle = HCI_CON_HANDLE_INVALID;
     DEBUG_PRINT("Disconnected\n");
-    state_set_system(STATE_BLE_WAITING);
+    state_refresh_runtime();
     break;
   case SM_EVENT_JUST_WORKS_REQUEST:
     DEBUG_PRINT("Just Works requested\n");
@@ -177,7 +177,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel,
       con_handle = hids_subevent_input_report_enable_get_con_handle(packet);
       DEBUG_PRINT("Report Characteristic Subscribed %u\n",
                   hids_subevent_input_report_enable_get_enable(packet));
-      state_set_system(STATE_BLE_CONNECTED);
+      state_refresh_runtime();
       break;
     case HIDS_SUBEVENT_CAN_SEND_NOW:
       send_report();

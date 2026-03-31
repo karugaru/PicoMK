@@ -52,12 +52,12 @@ bool usb_hid_is_active(void) { return tud_mounted(); }
 /**
  * @brief USBデバイスがマウントされた時のコールバック。
  */
-void tud_mount_cb(void) { state_set_system(STATE_USB_CONNECTED); }
+void tud_mount_cb(void) { state_refresh_runtime(); }
 
 /**
  * @brief USBデバイスがアンマウントされた時のコールバック。
  */
-void tud_umount_cb(void) { state_set_system(STATE_BLE_WAITING); }
+void tud_umount_cb(void) { state_refresh_runtime(); }
 
 /**
  * @brief USBバスがサスペンドされた時のコールバック。
