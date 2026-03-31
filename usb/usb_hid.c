@@ -1,3 +1,4 @@
+#include <string.h>
 #include <tusb.h>
 
 #include "../hid/hid.h"
@@ -24,9 +25,7 @@ void usb_hid_init(void) {
  * @brief USB HIDのデバイスのタスク処理を行う。
  *        メインループから定期的に呼び出す必要がある。
  */
-void usb_hid_task(void) {
-  tud_task();
-}
+void usb_hid_task(void) { tud_task(); }
 
 /**
  * @brief USB HIDレポートの送信を試みる。
