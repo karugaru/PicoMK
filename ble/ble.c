@@ -5,6 +5,7 @@
 #include "../keyboard/event.h"
 #include "../peripheral/peripheral.h"
 #include "../state/state.h"
+#include "../usb/usb_hid.h"
 #include "advertising_data.h"
 #include "ble.h"
 #include "picomk.h"
@@ -153,7 +154,9 @@ data_source_process(btstack_data_source_t *ds,
   peripheral_process_events();
 
   // イベントがある場合、HIDレポート送信要求をする
-  if (event_has_event() && con_handle != HCI_CON_HANDLE_INVALID) {
+  // USB HIDが有効な場合はスキップする。
+  if (event_has_event() && con_handle != HCI_CON_HANDLE_INVALID &&
+      !usb_hid_is_active()) {
     hids_device_request_can_send_now_event(con_handle);
   }
 }
