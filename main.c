@@ -136,14 +136,14 @@ int main() {
   // USB HIDの初期化
   usb_hid_init();
 
+  // 初期化完了
+  state_set_system(STATE_INIT_COMPLETE);
+  state_refresh_runtime();
+
   // 定期処理ワーカーをasync_contextに登録
   picomk_worker.do_work = picomk_worker_process;
   async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(),
                                          &picomk_worker, 1);
-
-  // 初期化完了
-  state_set_system(STATE_INIT_COMPLETE);
-  state_refresh_runtime();
 
   // メインループ
   while (true) {
