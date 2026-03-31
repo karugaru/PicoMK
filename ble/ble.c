@@ -34,6 +34,7 @@ static btstack_packet_callback_registration_t sm_event_callback_registration;
 
 static uint8_t battery = 100;
 static hci_con_handle_t con_handle = HCI_CON_HANDLE_INVALID;
+static bool ble_enabled = false;
 
 // --------------------------------
 // 関数定義
@@ -83,26 +84,42 @@ void ble_setup(void) {
 
 /**
  * @brief btstackの電源モードを設定する。
+ *        OFF時は接続中のBLEも切断される。
  * @param power trueでON、falseでOFF
  */
 void ble_power_set(bool power) {
+  ble_enabled = power;
   if (power) {
     hci_power_control(HCI_POWER_ON);
   } else {
+    if (con_handle != HCI_CON_HANDLE_INVALID) {
+      gap_disconnect(con_handle);
+    }
     hci_power_control(HCI_POWER_OFF);
   }
 }
 
 /**
  * @brief btstackの処理ワーカーを起動する。
+ *        BLEが無効の場合は何もしない。
  */
-void ble_poll(void) { btstack_run_loop_poll_data_sources_from_irq(); }
+void ble_poll(void) {
+  if (ble_enabled) {
+    btstack_run_loop_poll_data_sources_from_irq();
+  }
+}
 
 /**
  * @brief BLEが接続中かどうかを返す。
  * @return BLE接続中はtrue、それ以外はfalse
  */
 bool ble_is_connected(void) { return con_handle != HCI_CON_HANDLE_INVALID; }
+
+/**
+ * @brief BLEが有効かどうかを返す。
+ * @return BLE有効時はtrue、それ以外はfalse
+ */
+bool ble_is_enabled(void) { return ble_enabled; }
 
 /**
  * @brief BLE HIDレポートの送信許可を要求する。
