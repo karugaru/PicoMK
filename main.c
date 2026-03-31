@@ -25,32 +25,44 @@
 #else
 #define DEBUG_PRINT(...)
 #endif
-
-static repeating_timer_t pico_timer;
+static async_at_time_worker_t picomk_worker;
 
 /**
- * @brief
- * 一定周期で呼び出されるタイマ割り込みコールバック関数。
- * @param rt タイマ情報
- * @return true
+ * @brief async_contextの1ms定期ワーカーコールバック。
+ *        事実上のメインループ処理。
+ * @param context async_context
+ * @param worker ワーカー
  */
-static bool pico_timer_callback(repeating_timer_t *rt) {
+static void picomk_worker_process(async_context_t *context,
+                                  async_at_time_worker_t *worker) {
   // キーマトリクス処理を実行
   matrix_process();
 
   // 定期処理を実行
   event_process_periodic();
 
-  // 内部HID状態に変更があれば、BLEにイベント処理を行うよう要求する
-  if (event_has_event()) {
-    ble_invoke_check_event();
+  // TinyUSBデバイスタスクを実行
+  usb_hid_task();
+
+  // btstackの処理ワーカーを起動
+  ble_poll();
+
+  // 周辺機器のイベント処理（I2C通信を含むため必要な時のみ実行）
+  if (peripheral_require_event_processing()) {
+    peripheral_process_events();
   }
 
-  // 周辺機器のイベント処理が必要なら、BLEにイベント処理を行うよう要求する
-  if (peripheral_require_event_processing()) {
-    ble_invoke_check_event();
+  // HIDイベントがあればアクティブなトランスポートにレポート送信を要求
+  if (event_has_event()) {
+    if (usb_hid_is_active()) {
+      usb_hid_send_reports();
+    } else if (ble_is_connected()) {
+      ble_request_can_send();
+    }
   }
-  return true;
+
+  // 1ms後に再スケジュール
+  async_context_add_at_time_worker_in_ms(context, worker, 1);
 }
 
 /**
@@ -94,21 +106,19 @@ int main() {
   // USB HIDの初期化
   usb_hid_init();
 
-  // 1ms周期でタイマ割り込みを設定
-  add_repeating_timer_ms(1, pico_timer_callback, NULL, &pico_timer);
+  // 定期処理ワーカーをasync_contextに登録
+  picomk_worker.do_work = picomk_worker_process;
+  async_context_add_at_time_worker_in_ms(cyw43_arch_async_context(),
+                                         &picomk_worker, 1);
 
   // 初期化完了
   state_set_system(STATE_INIT_COMPLETE);
 
   // メインループ
   while (true) {
-    // USB HIDタスク処理（TinyUSBデバイスタスク + レポート送信）
-    usb_hid_task();
-
-    // BLE処理
     async_context_poll(cyw43_arch_async_context());
     async_context_wait_for_work_until(cyw43_arch_async_context(),
-                                      make_timeout_time_ms(10));
+                                      at_the_end_of_time);
   }
 
   state_set_system(STATE_RESET);

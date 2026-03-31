@@ -1,3 +1,4 @@
+#include <string.h>
 #include <tusb.h>
 
 #include "../hid/hid.h"
@@ -21,24 +22,19 @@ void usb_hid_init(void) {
 }
 
 /**
- * @brief USB HIDのタスク処理を行う。
+ * @brief USB HIDのデバイスのタスク処理を行う。
  *        メインループから定期的に呼び出す必要がある。
- *        TinyUSBのデバイスタスク実行と、HIDレポート送信を行う。
  */
-void usb_hid_task(void) {
-  tud_task();
+void usb_hid_task(void) { tud_task(); }
 
-  if (!tud_mounted()) {
+/**
+ * @brief USB HIDレポートの送信を試みる。
+ *        USBがマウント済みかつHIDが準備完了の場合にレポートチェーンを開始する。
+ */
+void usb_hid_send_reports(void) {
+  if (!tud_mounted() || !tud_hid_ready() || !event_has_event()) {
     return;
   }
-  if (!tud_hid_ready()) {
-    return;
-  }
-  if (!event_has_event()) {
-    return;
-  }
-
-  // レポートチェーンの開始（キーボード→マウス→コンシューマの順）
   usb_hid_send_report(KEYBOARD_REPORT_ID);
 }
 

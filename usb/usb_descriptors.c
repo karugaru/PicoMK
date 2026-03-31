@@ -1,4 +1,5 @@
 #include <pico/unique_id.h>
+#include <string.h>
 #include <tusb.h>
 
 #include "../hid/hid.h"
