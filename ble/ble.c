@@ -3,9 +3,7 @@
 #include <stdio.h>
 
 #include "../keyboard/event.h"
-#include "../peripheral/peripheral.h"
 #include "../state/state.h"
-#include "../usb/usb_hid.h"
 #include "advertising_data.h"
 #include "ble.h"
 #include "picomk.h"
@@ -23,9 +21,6 @@
 // --------------------------------
 // 関数宣言
 // --------------------------------
-static void
-data_source_process(btstack_data_source_t *ds,
-                    btstack_data_source_callback_type_t callback_type);
 static void packet_handler(uint8_t packet_type, uint16_t channel,
                            uint8_t *packet, uint16_t size);
 static void send_report();
@@ -33,12 +28,8 @@ static void send_report();
 // --------------------------------
 // BLE系変数定義
 // --------------------------------
-static btstack_data_source_t data_source;
-
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 static btstack_packet_callback_registration_t sm_event_callback_registration;
-
-static volatile bool invoked_callback = false;
 
 static uint8_t battery = 100;
 static hci_con_handle_t con_handle = HCI_CON_HANDLE_INVALID;
@@ -49,12 +40,8 @@ static hci_con_handle_t con_handle = HCI_CON_HANDLE_INVALID;
 
 /**
  * @brief BLEの初期化を行う。
- * @param preprocess_cb イベント処理前に差し込まれるコールバック関数
- * @param conn_cb 接続状態を受け取るためのコールバック関数
  */
 void ble_setup(void) {
-  invoked_callback = false;
-
   // Initialize L2CAP
   l2cap_init();
 
@@ -91,11 +78,6 @@ void ble_setup(void) {
   sm_event_callback_registration.callback = &packet_handler;
   sm_add_event_handler(&sm_event_callback_registration);
   hids_device_register_packet_handler(packet_handler);
-
-  data_source.process = data_source_process;
-  btstack_run_loop_add_data_source(&data_source);
-  btstack_run_loop_enable_data_source_callbacks(&data_source,
-                                                DATA_SOURCE_CALLBACK_POLL);
 }
 
 /**
@@ -111,55 +93,29 @@ void ble_power_set(bool power) {
 }
 
 /**
- * @brief BLEにイベント処理を行うよう要求する。
- *        外部から呼び出され、btstackのメインループで
- *        data_source_processが呼び出されるようにする。
+ * @brief btstackの処理ワーカーを起動する。
  */
-void ble_invoke_check_event(void) {
-  // すでにコールバックが呼び出されるよう要求されている場合は何もしない
-  if (invoked_callback) {
-    return;
-  }
-  // コールバック呼び出し要求をセット
-  invoked_callback = true;
+void ble_poll(void) { btstack_run_loop_poll_data_sources_from_irq(); }
 
-  // これにより、btstackのメインループでdata_source_processが呼び出される
-  btstack_run_loop_poll_data_sources_from_irq();
+/**
+ * @brief BLEが接続中かどうかを返す。
+ * @return BLE接続中はtrue、それ以外はfalse
+ */
+bool ble_is_connected(void) { return con_handle != HCI_CON_HANDLE_INVALID; }
+
+/**
+ * @brief BLE HIDレポートの送信許可を要求する。
+ *        btstackのコールバックで実際の送信が行われる。
+ */
+void ble_request_can_send(void) {
+  if (con_handle != HCI_CON_HANDLE_INVALID) {
+    hids_device_request_can_send_now_event(con_handle);
+  }
 }
 
 // ---------------------------------
 // 静的関数
 // ---------------------------------
-
-/**
- * @brief btstackのメインループから呼び出される関数。
- *        内部HID状態に変更があった場合にHIDレポートの送信要求をする。
- * @param ds データソース
- * @param callback_type コールバックの種類
- */
-static void
-data_source_process(btstack_data_source_t *ds,
-                    btstack_data_source_callback_type_t callback_type) {
-  if (callback_type != DATA_SOURCE_CALLBACK_POLL) {
-    return;
-  }
-  if (!invoked_callback) {
-    return;
-  }
-  invoked_callback = false;
-
-  // 周辺機器のイベント処理を行う
-  // 周辺機器は応答が遅いので、割り込み処理で処理ができない。
-  // よって、ここで処理を行う
-  peripheral_process_events();
-
-  // イベントがある場合、HIDレポート送信要求をする
-  // USB HIDが有効な場合はスキップする。
-  if (event_has_event() && con_handle != HCI_CON_HANDLE_INVALID &&
-      !usb_hid_is_active()) {
-    hids_device_request_can_send_now_event(con_handle);
-  }
-}
 
 /**
  * @brief btstackのイベントハンドラ

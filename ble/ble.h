@@ -5,6 +5,8 @@
 
 void ble_setup(void);
 void ble_power_set(bool power);
-void ble_invoke_check_event(void);
+void ble_poll(void);
+bool ble_is_connected(void);
+void ble_request_can_send(void);
 
 #endif // BLE_H
