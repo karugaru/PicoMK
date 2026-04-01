@@ -22,20 +22,21 @@ static int8_t pointing_device_pinnacle = -1;
  * @return bool 初期化に成功した場合にtrueを返す。
  */
 bool peripheral_init(void) {
-  if (USE_PINNACLE) {
-    // I2Cとトラックパッドの初期化
-    if (!pinnacle_init(i2c0, GPIO_SCL_PIN, GPIO_SDA_PIN, GPIO_DR_PIN)) {
-      DEBUG_PRINT("failed to initialise pinnacle\n");
-      return false;
-    }
-    pinnacle_set_speed(PINNACLE_ACCEL, PINNACLE_SPEED);
-    pinnacle_set_rotation(PINNACLE_ROTATE);
-    pointing_device_pinnacle = event_request_pointing_device_id();
-    if (pointing_device_pinnacle < 0) {
-      DEBUG_PRINT("failed to request pointing device id for pinnacle\n");
-      return false;
-    }
+#if USE_PINNACLE
+  // I2Cとトラックパッドの初期化
+  if (!pinnacle_init(i2c0, GPIO_SCL_PIN, GPIO_SDA_PIN, GPIO_DR_PIN)) {
+    DEBUG_PRINT("failed to initialise pinnacle\n");
+    return false;
   }
+  pinnacle_set_speed(PINNACLE_ACCEL, PINNACLE_SPEED);
+  pinnacle_set_rotation(PINNACLE_ROTATE);
+  pointing_device_pinnacle = event_request_pointing_device_id();
+  if (pointing_device_pinnacle < 0) {
+    DEBUG_PRINT("failed to request pointing device id for pinnacle\n");
+    return false;
+  }
+#endif
+
   return true;
 }
 
