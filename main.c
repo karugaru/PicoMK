@@ -31,9 +31,6 @@
 #define DEBUG_PRINT(...)
 #endif
 
-// 1分間無操作でディープスリープに入る
-#define DEEP_SLEEP_TIMEOUT_US ((int64_t)1 * 60 * 1000 * 1000)
-
 static async_at_time_worker_t picomk_worker;
 static absolute_time_t last_activity_time;
 
@@ -69,9 +66,8 @@ static void enter_dormant(void) {
   pll_deinit(pll_usb);
 
   // GPIOドーマントウェイク設定 (DR pin, rising edge)
-  gpio_set_dormant_irq_enabled(GPIO_DR_PIN,
-                               IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS,
-                               true);
+  gpio_set_dormant_irq_enabled(
+      GPIO_DR_PIN, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS, true);
 
   // ドーマントモードに入る（ここで停止し、GPIO割り込みで復帰）
   xosc_dormant();
