@@ -40,8 +40,7 @@ static void matrix_enable_dormant_wakeup(void) {
     gpio_set_function(col_pin, GPIO_FUNC_SIO);
     gpio_set_dir(col_pin, GPIO_IN);
     gpio_pull_up(col_pin);
-    gpio_set_dormant_irq_enabled(
-        col_pin, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_LOW_BITS, true);
+    gpio_set_dormant_irq_enabled(col_pin, GPIO_IRQ_EDGE_FALL, true);
   }
 }
 
@@ -51,10 +50,8 @@ static void matrix_enable_dormant_wakeup(void) {
 static void matrix_acknowledge_dormant_wakeup(void) {
   for (int col = 0; col < COLS; col++) {
     uint8_t col_pin = cols_pins[col];
-    gpio_acknowledge_irq(col_pin,
-                         IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_LOW_BITS);
-    gpio_set_dormant_irq_enabled(
-        col_pin, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_LOW_BITS, false);
+    gpio_acknowledge_irq(col_pin, GPIO_IRQ_EDGE_FALL);
+    gpio_set_dormant_irq_enabled(col_pin, GPIO_IRQ_EDGE_FALL, false);
   }
 }
 
@@ -93,8 +90,7 @@ void enter_dormant(void) {
   matrix_enable_dormant_wakeup();
 
   // GPIOドーマントウェイク設定 (DR pin, rising edge)
-  gpio_set_dormant_irq_enabled(
-      GPIO_DR_PIN, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS, true);
+  gpio_set_dormant_irq_enabled(GPIO_DR_PIN, GPIO_IRQ_EDGE_RISE, true);
 
   // ドーマントモードに入る（ここで停止し、GPIO割り込みで復帰）
   xosc_dormant();
@@ -102,10 +98,8 @@ void enter_dormant(void) {
   // --- 復帰後 ---
   // IRQをクリア
   matrix_acknowledge_dormant_wakeup();
-  gpio_acknowledge_irq(GPIO_DR_PIN,
-                       IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS);
-  gpio_set_dormant_irq_enabled(
-      GPIO_DR_PIN, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS, false);
+  gpio_acknowledge_irq(GPIO_DR_PIN, GPIO_IRQ_EDGE_RISE);
+  gpio_set_dormant_irq_enabled(GPIO_DR_PIN, GPIO_IRQ_EDGE_RISE, false);
 
   // ウォッチドッグでリブート
   watchdog_reboot(0, 0, 0);
