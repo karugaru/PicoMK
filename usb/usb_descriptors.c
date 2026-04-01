@@ -1,4 +1,5 @@
 #include <pico/unique_id.h>
+#include <stddef.h>
 #include <string.h>
 #include <tusb.h>
 
@@ -130,12 +131,10 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 }
 
 void usb_descriptors_init(void) {
-  // TUD_HID_DESCRIPTORのreport descriptor lenフィールドの位置:
-  // Config descriptor (9 bytes) + Interface descriptor (9 bytes) +
-  // HID descriptor offset: bLength(1) + bDescriptorType(1) + bcdHID(2) +
-  // bCountryCode(1) + bNumDescriptors(1) + bDescriptorType2(1) = 7 bytes
-  // → offset = 9 + 9 + 7 = 25 (16bit LE)
+  // HID descriptor内のwReportLengthフィールドのオフセットを計算
+  const size_t offset = TUD_CONFIG_DESC_LEN + sizeof(tusb_desc_interface_t) +
+                        offsetof(tusb_hid_descriptor_hid_t, wReportLength);
   uint16_t report_desc_len = hid_descriptor_len;
-  desc_configuration[25] = report_desc_len & 0xFF;
-  desc_configuration[26] = (report_desc_len >> 8) & 0xFF;
+  desc_configuration[offset] = report_desc_len & 0xFF;
+  desc_configuration[offset + 1] = (report_desc_len >> 8) & 0xFF;
 }
