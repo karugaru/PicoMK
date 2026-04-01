@@ -1,4 +1,9 @@
+#include <hardware/clocks.h>
 #include <hardware/i2c.h>
+#include <hardware/pll.h>
+#include <hardware/regs/io_bank0.h>
+#include <hardware/watchdog.h>
+#include <hardware/xosc.h>
 #include <pico/bootrom.h>
 #include <pico/cyw43_arch.h>
 #include <pico/stdlib.h>
@@ -26,7 +31,64 @@
 #define DEBUG_PRINT(...)
 #endif
 
+// 1分間無操作でディープスリープに入る
+#define DEEP_SLEEP_TIMEOUT_US ((int64_t)1 * 60 * 1000 * 1000)
+
 static async_at_time_worker_t picomk_worker;
+static absolute_time_t last_activity_time;
+
+/**
+ * @brief ドーマントモード(ディープスリープ)に入る。
+ *        GPIOピンのエッジで復帰し、ウォッチドッグリブートを行う。
+ */
+static void enter_dormant(void) {
+  DEBUG_PRINT("entering dormant mode\n");
+
+  // LEDを消灯
+  led_put_rgb(0, 0, 0);
+
+  // BLEを無効化
+  ble_power_set(false);
+
+  // stdio をフラッシュ
+  stdio_flush();
+
+  // クロックをXOSCに切り替え（PLLを停止するため）
+  clock_configure(clk_ref, CLOCKS_CLK_REF_CTRL_SRC_VALUE_XOSC_CLKSRC, 0,
+                  XOSC_HZ, XOSC_HZ);
+  clock_configure(clk_sys, CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLK_REF,
+                  CLOCKS_CLK_SYS_CTRL_AUXSRC_VALUE_CLKSRC_PLL_SYS, XOSC_HZ,
+                  XOSC_HZ);
+  clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS,
+                  XOSC_HZ, XOSC_HZ);
+  // USB/ADCクロックを無効化
+  clock_stop(clk_usb);
+  clock_stop(clk_adc);
+  // PLLを無効化
+  pll_deinit(pll_sys);
+  pll_deinit(pll_usb);
+
+  // GPIOドーマントウェイク設定 (DR pin, rising edge)
+  gpio_set_dormant_irq_enabled(GPIO_DR_PIN,
+                               IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS,
+                               true);
+
+  // ドーマントモードに入る（ここで停止し、GPIO割り込みで復帰）
+  xosc_dormant();
+
+  // --- 復帰後 ---
+  // IRQをクリア
+  gpio_acknowledge_irq(GPIO_DR_PIN,
+                       IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS);
+
+  // ウォッチドッグでリブート
+  watchdog_reboot(0, 0, 0);
+
+  // リブート待ち
+  while (true) {
+    tight_loop_contents();
+  }
+}
 
 /**
  * @brief async_contextの1ms定期ワーカーコールバック。
@@ -77,18 +139,33 @@ static void picomk_worker_process(async_context_t *context,
     ble_poll();
   }
 
+  bool has_activity = false;
+
   // 周辺機器のイベント処理（I2C通信を含むため必要な時のみ実行）
   if (peripheral_require_event_processing()) {
     peripheral_process_events();
+    has_activity = true;
   }
 
   // HIDイベントがあればアクティブなトランスポートにレポート送信を要求
   if (event_has_event()) {
+    has_activity = true;
     if (use_ble) {
       ble_request_can_send();
     } else if (use_usb) {
       usb_hid_send_reports();
     }
+  }
+
+  // アクティビティがあればタイマーをリセット
+  if (has_activity) {
+    last_activity_time = get_absolute_time();
+  }
+
+  // ディープスリープチェック
+  if (absolute_time_diff_us(last_activity_time, get_absolute_time()) >
+      DEEP_SLEEP_TIMEOUT_US) {
+    enter_dormant();
   }
 
   // 1ms後に再スケジュール
@@ -139,6 +216,9 @@ int main() {
   // 初期化完了
   state_set_system(STATE_INIT_COMPLETE);
   state_refresh_runtime();
+
+  // アクティビティタイマー初期化
+  last_activity_time = get_absolute_time();
 
   // 定期処理ワーカーをasync_contextに登録
   picomk_worker.do_work = picomk_worker_process;
