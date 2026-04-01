@@ -1,5 +1,5 @@
-#ifndef SETTING_H
-#define SETTING_H
+#ifndef PICOMK_SETTINGS_H
+#define PICOMK_SETTINGS_H
 
 #define LED_BRIGHTNESS 16 // LEDの明るさの最大値 (1-255)
 
@@ -27,4 +27,4 @@
 
 void settings_init(void);
 
-#endif // SETTING_H
+#endif // PICOMK_SETTINGS_H

@@ -1,5 +1,5 @@
-#ifndef STATE_H
-#define STATE_H
+#ifndef PICOMK_STATE_H
+#define PICOMK_STATE_H
 
 typedef enum {
   STATE_RESET,
@@ -28,4 +28,4 @@ connection_preference_t state_get_connection_preference(void);
 void state_switch_connection_preference(connection_preference_t pref);
 void state_refresh_runtime(void);
 
-#endif // STATE_H
+#endif // PICOMK_STATE_H

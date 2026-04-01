@@ -1,5 +1,5 @@
-#ifndef USB_DESCRIPTORS_H
-#define USB_DESCRIPTORS_H
+#ifndef PICOMK_USB_DESCRIPTORS_H
+#define PICOMK_USB_DESCRIPTORS_H
 
 // USB VID/PID (開発用)
 #define USB_VID 0xCafe
@@ -12,4 +12,4 @@
  */
 void usb_descriptors_init(void);
 
-#endif // USB_DESCRIPTORS_H
+#endif // PICOMK_USB_DESCRIPTORS_H

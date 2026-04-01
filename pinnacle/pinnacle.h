@@ -1,5 +1,5 @@
-#ifndef PINNACLE_H
-#define PINNACLE_H
+#ifndef PICOMK_PINNACLE_H
+#define PICOMK_PINNACLE_H
 
 #include "hardware/i2c.h"
 #include <pico/stdlib.h>
@@ -75,7 +75,7 @@ void pinnacle_set_rotation(pinnacle_rotate_t rotation);
 bool pinnacle_check_DR();
 bool pinnacle_read_data(pinnacle_data_t *data);
 
-#endif // PINNACLE_H
+#endif // PICOMK_PINNACLE_H
 
 /*
  * メモ
