@@ -99,6 +99,7 @@ void ble_power_set(bool power) {
     if (con_handle != HCI_CON_HANDLE_INVALID) {
       gap_disconnect(con_handle);
     }
+    con_handle = HCI_CON_HANDLE_INVALID;
     hci_power_control(HCI_POWER_OFF);
   }
 }
@@ -106,9 +107,7 @@ void ble_power_set(bool power) {
 /**
  * @brief btstackの処理ワーカーを起動する。
  */
-void ble_poll(void) {
-    btstack_run_loop_poll_data_sources_from_irq();
-}
+void ble_poll(void) { btstack_run_loop_poll_data_sources_from_irq(); }
 
 /**
  * @brief BLEが接続中かどうかを返す。
