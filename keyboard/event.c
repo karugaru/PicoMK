@@ -84,6 +84,7 @@ int8_t event_request_pointing_device_id(void) {
 
 /**
  * @brief キーボードキーを追加
+ * @return 内部状態が変化された場合にtrueを返す
  */
 bool event_apply_press_keyboard_key(keyboard_modifiered_code_t keycode) {
   // 修飾キーが直接指定された場合
@@ -108,7 +109,7 @@ bool event_apply_press_keyboard_key(keyboard_modifiered_code_t keycode) {
   // 既に押されているかチェック
   for (int i = 0; i < 6; i++) {
     if (hid_state.keyboard.keycode[i] == key_bits) {
-      return false || virt_mod_changed;
+      return virt_mod_changed;
     }
   }
 
@@ -120,11 +121,12 @@ bool event_apply_press_keyboard_key(keyboard_modifiered_code_t keycode) {
     }
   }
 
-  return false || virt_mod_changed; // スロットが満杯
+  return virt_mod_changed; // スロットが満杯
 }
 
 /**
  * @brief キーボードキーを削除
+ * @return 内部状態が変化された場合にtrueを返す
  */
 bool event_apply_release_keyboard_key(keyboard_modifiered_code_t keycode) {
   // 修飾キーが直接指定された場合
@@ -156,11 +158,12 @@ bool event_apply_release_keyboard_key(keyboard_modifiered_code_t keycode) {
       return true;
     }
   }
-  return false || virt_mod_changed; // キーが見つからない
+  return virt_mod_changed; // キーが見つからない
 }
 
 /**
  * @brief コンシューマーキーを追加
+ * @return 内部状態が変化された場合にtrueを返す
  */
 bool event_apply_press_consumer_key(consumer_code_t keycode) {
   // 既に押されているかチェック
@@ -183,6 +186,7 @@ bool event_apply_press_consumer_key(consumer_code_t keycode) {
 
 /**
  * @brief コンシューマーキーを削除
+ * @return 内部状態が変化された場合にtrueを返す
  */
 bool event_apply_release_consumer_key(consumer_code_t keycode) {
   for (int i = 0; i < 6; i++) {

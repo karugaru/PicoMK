@@ -26,8 +26,8 @@ static const state_led_entry_t state_led_table[] = {
 };
 // clang-format on
 
-volatile static state_system_t current_state = STATE_RESET;
-volatile static connection_preference_t conn_pref = CONN_PREF_USB;
+static volatile state_system_t current_state = STATE_RESET;
+static volatile connection_preference_t conn_pref = CONN_PREF_USB;
 
 /**
  * @brief 指定された状態がランタイム状態かどうかを返す。
