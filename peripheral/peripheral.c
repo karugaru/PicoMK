@@ -24,7 +24,7 @@ static int8_t pointing_device_pinnacle = -1;
 bool peripheral_init(void) {
   if (USE_PINNACLE) {
     // I2Cとトラックパッドの初期化
-    if (!pinnacle_init(i2c0, GPIO_SDA_PIN, GPIO_SCL_PIN, GPIO_DR_PIN)) {
+    if (!pinnacle_init(i2c0, GPIO_SCL_PIN, GPIO_SDA_PIN, GPIO_DR_PIN)) {
       DEBUG_PRINT("failed to initialise pinnacle\n");
       return false;
     }
