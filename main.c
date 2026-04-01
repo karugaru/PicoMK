@@ -34,6 +34,37 @@
 static async_at_time_worker_t picomk_worker;
 static absolute_time_t last_activity_time;
 
+static void matrix_enable_dormant_wakeup(void) {
+  // 行をLOW出力に固定し、押下時に列がLOWへ落ちる経路を作る。
+  for (int row = 0; row < ROWS; row++) {
+    uint8_t row_pin = rows_pins[row];
+    gpio_set_function(row_pin, GPIO_FUNC_SIO);
+    gpio_disable_pulls(row_pin);
+    gpio_put(row_pin, 0);
+    gpio_set_dir(row_pin, GPIO_OUT);
+  }
+
+  // 列はプルアップ入力にし、LOWエッジでドーマント復帰を有効化する。
+  for (int col = 0; col < COLS; col++) {
+    uint8_t col_pin = cols_pins[col];
+    gpio_set_function(col_pin, GPIO_FUNC_SIO);
+    gpio_set_dir(col_pin, GPIO_IN);
+    gpio_pull_up(col_pin);
+    gpio_set_dormant_irq_enabled(
+        col_pin, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_LOW_BITS, true);
+  }
+}
+
+static void matrix_acknowledge_dormant_wakeup(void) {
+  for (int col = 0; col < COLS; col++) {
+    uint8_t col_pin = cols_pins[col];
+    gpio_acknowledge_irq(col_pin,
+                         IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_LOW_BITS);
+    gpio_set_dormant_irq_enabled(
+        col_pin, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_LOW_BITS, false);
+  }
+}
+
 /**
  * @brief ドーマントモード(ディープスリープ)に入る。
  *        GPIOピンのエッジで復帰し、ウォッチドッグリブートを行う。
@@ -65,6 +96,9 @@ static void enter_dormant(void) {
   pll_deinit(pll_sys);
   pll_deinit(pll_usb);
 
+  // どのキー押下でも復帰できるよう、マトリクス列のLOWエッジを有効化
+  matrix_enable_dormant_wakeup();
+
   // GPIOドーマントウェイク設定 (DR pin, rising edge)
   gpio_set_dormant_irq_enabled(
       GPIO_DR_PIN, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS, true);
@@ -74,8 +108,11 @@ static void enter_dormant(void) {
 
   // --- 復帰後 ---
   // IRQをクリア
+  matrix_acknowledge_dormant_wakeup();
   gpio_acknowledge_irq(GPIO_DR_PIN,
                        IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS);
+  gpio_set_dormant_irq_enabled(
+      GPIO_DR_PIN, IO_BANK0_DORMANT_WAKE_INTE0_GPIO0_EDGE_HIGH_BITS, false);
 
   // ウォッチドッグでリブート
   watchdog_reboot(0, 0, 0);
