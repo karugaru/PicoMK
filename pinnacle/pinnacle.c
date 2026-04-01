@@ -304,22 +304,22 @@ bool pinnacle_read_data(pinnacle_data_t *data) {
   // 回転反映
   switch (rotation) {
   case PINNACLE_ROTATE_0:
+    data->xDelta = dx;
+    data->yDelta = dy;
     break;
-  case PINNACLE_ROTATE_90: {
+  case PINNACLE_ROTATE_90:
     data->xDelta = -dy;
     data->yDelta = dx;
     break;
-  }
-  case PINNACLE_ROTATE_180: {
+  case PINNACLE_ROTATE_180:
     data->xDelta = -dx;
     data->yDelta = -dy;
     break;
-  }
-  case PINNACLE_ROTATE_270: {
+
+  case PINNACLE_ROTATE_270:
     data->xDelta = dy;
     data->yDelta = -dx;
     break;
-  }
   }
 
   // 速度調整
