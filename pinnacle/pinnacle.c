@@ -141,6 +141,34 @@ static void eraReadBytes(uint16_t address, uint16_t count,
   rapWrite(PINNACLE_I2C_FEED_CONFIG_1, feedConfig1);
 }
 
+/**
+ * @brief 復帰直後の接触残りを避けるため、一定時間DRが静かな状態を待つ。
+ */
+static void wait_for_release_before_calibration(void) {
+  absolute_time_t start = get_absolute_time();
+  absolute_time_t released_since = {0};
+  bool release_started = false;
+
+  while (absolute_time_diff_us(start, get_absolute_time()) <
+         (int64_t)PINNACLE_CALIBRATION_RELEASE_TIMEOUT_MS * 1000) {
+    if (pinnacle_check_DR()) {
+      // pendingデータを捨て、接触/動作が落ち着くのを待つ
+      rapWrite(PINNACLE_I2C_STATUS, 0x00);
+      release_started = false;
+    } else {
+      if (!release_started) {
+        released_since = get_absolute_time();
+        release_started = true;
+      } else if (absolute_time_diff_us(released_since, get_absolute_time()) >=
+                 (int64_t)PINNACLE_CALIBRATION_RELEASE_WAIT_MS * 1000) {
+        return;
+      }
+    }
+
+    sleep_ms(1);
+  }
+}
+
 // ----------------------------------------------------------------
 // 関数定義
 // ----------------------------------------------------------------
@@ -224,6 +252,9 @@ bool pinnacle_init(i2c_inst_t *i2c_inst, uint8_t scl_pin, uint8_t sda_pin,
   uint8_t sensitivity = 0;
   eraReadBytes(0x0187, 1, &sensitivity);
   eraWrite(0x0187, (sensitivity & 0x3F) | (PINNACLE_DEFAULT_SENSITIVITY << 6));
+
+  // 復帰トリガー直後の接触中キャリブレーションを避ける
+  wait_for_release_before_calibration();
 
   // キャリブレーション
   rapWrite(PINNACLE_I2C_CAL_CONFIG, 0b00011111);

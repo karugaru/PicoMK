@@ -34,6 +34,11 @@
 #define PINNACLE_I2C_ERA_CONTROL 0x1E
 // #define PINNACLE_I2C_HCO_ID 0x1F
 
+// キャリブレーション開始前の静穏と判定する時間
+#define PINNACLE_CALIBRATION_RELEASE_WAIT_MS 50
+// キャリブレーション開始前の最大待ち時間
+#define PINNACLE_CALIBRATION_RELEASE_TIMEOUT_MS 10000
+
 /**
  * @brief Pinnacleのデータ構造体
  */
