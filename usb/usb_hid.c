@@ -39,9 +39,9 @@ void usb_hid_send_reports(void) {
 }
 
 /**
- * @brief USBがマウントされており、HIDが有効かどうかを返す。
- *        USB接続中にBLEよりUSBを優先するために使用する。
- * @return USBマウント中はtrue、それ以外はfalse
+ * @brief
+ * USBが接続済みかつHID通信準備完了かどうかを返す。
+ * @return USBが接続済みかつHID通信準備完了な場合はtrue、それ以外はfalse
  */
 bool usb_hid_is_active(void) { return tud_mounted(); }
 
@@ -52,12 +52,12 @@ bool usb_hid_is_active(void) { return tud_mounted(); }
 /**
  * @brief USBデバイスがマウントされた時のコールバック。
  */
-void tud_mount_cb(void) { state_set_system(STATE_USB_CONNECTED); }
+void tud_mount_cb(void) { state_refresh_runtime(); }
 
 /**
  * @brief USBデバイスがアンマウントされた時のコールバック。
  */
-void tud_umount_cb(void) { state_set_system(STATE_BLE_WAITING); }
+void tud_umount_cb(void) { state_refresh_runtime(); }
 
 /**
  * @brief USBバスがサスペンドされた時のコールバック。

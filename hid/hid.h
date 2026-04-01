@@ -1,5 +1,5 @@
-#ifndef HID__H
-#define HID__H
+#ifndef PICOMK_HID_H
+#define PICOMK_HID_H
 
 #include "../keyboard/code.h"
 #include <pico/stdlib.h>
@@ -54,4 +54,4 @@ void hid_consumer_to_report(hid_state_t *event,
 
 int8_t hid_request_pointing_device_id(hid_state_t *state);
 
-#endif // HID__H
+#endif // PICOMK_HID_H

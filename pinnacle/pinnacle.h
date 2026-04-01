@@ -1,5 +1,5 @@
-#ifndef PINNACLE_H
-#define PINNACLE_H
+#ifndef PICOMK_PINNACLE_H
+#define PICOMK_PINNACLE_H
 
 #include "hardware/i2c.h"
 #include <pico/stdlib.h>
@@ -33,6 +33,11 @@
 #define PINNACLE_I2C_ERA_ADDR_LOW 0x1D
 #define PINNACLE_I2C_ERA_CONTROL 0x1E
 // #define PINNACLE_I2C_HCO_ID 0x1F
+
+// キャリブレーション開始前の静穏と判定する時間
+#define PINNACLE_CALIBRATION_RELEASE_WAIT_MS 50
+// キャリブレーション開始前の最大待ち時間
+#define PINNACLE_CALIBRATION_RELEASE_TIMEOUT_MS 10000
 
 /**
  * @brief Pinnacleのデータ構造体
@@ -75,7 +80,7 @@ void pinnacle_set_rotation(pinnacle_rotate_t rotation);
 bool pinnacle_check_DR();
 bool pinnacle_read_data(pinnacle_data_t *data);
 
-#endif // PINNACLE_H
+#endif // PICOMK_PINNACLE_H
 
 /*
  * メモ

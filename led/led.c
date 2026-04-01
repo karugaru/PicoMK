@@ -7,7 +7,7 @@ static PIO pio = NULL;
 
 /**
  * @brief GRB形式のピクセルデータをLEDに送信する。
- * @param pixel_grb GRB形式のピクセルデータ (0x00RRGGBB)
+ * @param pixel_grb GRB形式のピクセルデータ (0x00GGRRBB)
  */
 void led_put_pixel(uint32_t pixel_grb) {
   if (pio == NULL)

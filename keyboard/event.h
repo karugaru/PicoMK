@@ -1,5 +1,5 @@
-#ifndef EVENT_H
-#define EVENT_H
+#ifndef PICOMK_EVENT_H
+#define PICOMK_EVENT_H
 
 #include "code.h"
 #include <../hid/hid.h>
@@ -22,4 +22,4 @@ bool event_pop_keyboard_report(uint8_t report[HID_KEYBOARD_REPORT_SIZE]);
 bool event_pop_consumer_report(uint8_t report[HID_CONSUMER_REPORT_SIZE]);
 bool event_pop_mouse_report(uint8_t report[HID_MOUSE_REPORT_SIZE]);
 
-#endif // EVENT_H
+#endif // PICOMK_EVENT_H

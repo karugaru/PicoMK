@@ -1,5 +1,5 @@
-#ifndef _PICO_BTSTACK_CONFIG_H
-#define _PICO_BTSTACK_CONFIG_H
+#ifndef PICOMK_BTSTACK_CONFIG_H
+#define PICOMK_BTSTACK_CONFIG_H
 
 #ifndef ENABLE_BLE
 #error Please link to pico_btstack_ble
@@ -58,4 +58,4 @@
 #define ENABLE_SOFTWARE_AES128
 #define ENABLE_MICRO_ECC_FOR_LE_SECURE_CONNECTIONS
 
-#endif // _PICO_BTSTACK_CONFIG_H
+#endif // PICOMK_BTSTACK_CONFIG_H

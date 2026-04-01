@@ -1,5 +1,8 @@
-#ifndef SETTING_H
-#define SETTING_H
+#ifndef PICOMK_SETTINGS_H
+#define PICOMK_SETTINGS_H
+
+// ディープスリープタイムアウト時間(10分)
+#define DEEP_SLEEP_TIMEOUT_US ((int64_t)10 * 60 * 1000 * 1000)
 
 #define LED_BRIGHTNESS 16 // LEDの明るさの最大値 (1-255)
 
@@ -27,4 +30,4 @@
 
 void settings_init(void);
 
-#endif // SETTING_H
+#endif // PICOMK_SETTINGS_H

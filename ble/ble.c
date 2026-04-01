@@ -34,6 +34,7 @@ static btstack_packet_callback_registration_t sm_event_callback_registration;
 
 static uint8_t battery = 100;
 static hci_con_handle_t con_handle = HCI_CON_HANDLE_INVALID;
+static bool ble_enabled = false;
 
 // --------------------------------
 // 関数定義
@@ -83,12 +84,22 @@ void ble_setup(void) {
 
 /**
  * @brief btstackの電源モードを設定する。
+ *        OFF時は接続中のBLEも切断される。
  * @param power trueでON、falseでOFF
  */
 void ble_power_set(bool power) {
+  if (power == ble_enabled) {
+    return;
+  }
+
+  ble_enabled = power;
   if (power) {
     hci_power_control(HCI_POWER_ON);
   } else {
+    if (con_handle != HCI_CON_HANDLE_INVALID) {
+      gap_disconnect(con_handle);
+    }
+    con_handle = HCI_CON_HANDLE_INVALID;
     hci_power_control(HCI_POWER_OFF);
   }
 }
@@ -103,6 +114,12 @@ void ble_poll(void) { btstack_run_loop_poll_data_sources_from_irq(); }
  * @return BLE接続中はtrue、それ以外はfalse
  */
 bool ble_is_connected(void) { return con_handle != HCI_CON_HANDLE_INVALID; }
+
+/**
+ * @brief BLEが有効かどうかを返す。
+ * @return BLE有効時はtrue、それ以外はfalse
+ */
+bool ble_is_enabled(void) { return ble_enabled; }
 
 /**
  * @brief BLE HIDレポートの送信許可を要求する。
@@ -137,7 +154,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel,
   case HCI_EVENT_DISCONNECTION_COMPLETE:
     con_handle = HCI_CON_HANDLE_INVALID;
     DEBUG_PRINT("Disconnected\n");
-    state_set_system(STATE_BLE_WAITING);
+    state_refresh_runtime();
     break;
   case SM_EVENT_JUST_WORKS_REQUEST:
     DEBUG_PRINT("Just Works requested\n");
@@ -159,7 +176,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel,
       con_handle = hids_subevent_input_report_enable_get_con_handle(packet);
       DEBUG_PRINT("Report Characteristic Subscribed %u\n",
                   hids_subevent_input_report_enable_get_enable(packet));
-      state_set_system(STATE_BLE_CONNECTED);
+      state_refresh_runtime();
       break;
     case HIDS_SUBEVENT_CAN_SEND_NOW:
       send_report();
