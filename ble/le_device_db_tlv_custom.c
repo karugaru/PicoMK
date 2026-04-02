@@ -47,24 +47,26 @@
 
 #include "le_device_db_tlv_custom.h"
 
-// LE Device DB Implementation storing entries in btstack_tlv
+// btstack_tlv を使って LE Device DB を永続化する実装
+// TLV 上の削除状態を扱いやすくするため、ローカルキャッシュも併用する
 
-// Local cache is used to keep track of deleted entries in TLV
+// このソースはBtstackの標準実装(le_device_db_tlv.c)をオーバーライドする。
+// これにより、ペアリング情報の保存システムをユーザコードでカスタマイズできるようになる。
 
 #define INVALID_ENTRY_ADDR_TYPE 0xff
 
-// Single stored entry
+// TLV に保存するエントリの構造体
 typedef struct le_device_db_entry_t {
 
-  uint32_t seq_nr; // used for "least recently stored" eviction strategy
+  uint32_t seq_nr; // 最も古い保存順を判定するためのシーケンス番号
 
-  // Identification
+  // 識別情報
   int addr_type;
   bd_addr_t addr;
   sm_key_t irk;
 
-  // Stored pairing information allows to re-establish an enncrypted connection
-  // with a peripheral that doesn't have any persistent memory
+  // 保存したペアリング情報。
+  // 相手側に永続メモリがなくても、再接続時に暗号化を再確立できるようにする。
   sm_key_t ltk;
   uint16_t ediv;
   uint8_t rand[8];
@@ -75,11 +77,11 @@ typedef struct le_device_db_entry_t {
   uint8_t secure_connection;
 
 #ifdef ENABLE_LE_SIGNED_WRITE
-  // Signed Writes by remote
+  // 相手側の Signed Write 情報
   sm_key_t remote_csrk;
   uint32_t remote_counter;
 
-  // Signed Writes by us
+  // 自分側の Signed Write 情報
   sm_key_t local_csrk;
   uint32_t local_counter;
 #endif
@@ -96,13 +98,18 @@ typedef struct le_device_db_entry_t {
     "NVM_NUM_DEVICE_DB_ENTRIES must not be 0, please update in btstack_config.h"
 #endif
 
-// only stores if entry present
+// 使用中スロットのみ 1 を保持するマップ
 static uint8_t entry_map[NVM_NUM_DEVICE_DB_ENTRIES];
 static uint32_t num_valid_entries;
 
 static const btstack_tlv_t *le_device_db_tlv_btstack_tlv_impl;
 static void *le_device_db_tlv_btstack_tlv_context;
 
+/**
+ * @brief TLV 上の tag をインデックスから生成する。
+ * tag の構造は "BTD" + index とする。
+ * これにより、TLV 上で LE Device DB のエントリを識別できるようになる。
+ */
 static uint32_t le_device_db_tlv_tag_for_index(uint8_t index) {
   static const char tag_0 = 'B';
   static const char tag_1 = 'T';
@@ -111,8 +118,12 @@ static uint32_t le_device_db_tlv_tag_for_index(uint8_t index) {
   return (tag_0 << 24u) | (tag_1 << 16u) | (tag_2 << 8u) | index;
 }
 
-// @return success
-// @param index = entry_pos
+/**
+ * @brief TLV から index 番のエントリを読み出す。
+ * @param index 読み出すエントリのインデックス
+ * @param entry 読み出したエントリの格納先
+ * @return 読み出し成功時 true、失敗時 false
+ */
 static bool le_device_db_tlv_fetch(int index, le_device_db_entry_t *entry) {
   btstack_assert(le_device_db_tlv_btstack_tlv_impl != NULL);
   btstack_assert(index >= 0);
@@ -125,8 +136,12 @@ static bool le_device_db_tlv_fetch(int index, le_device_db_entry_t *entry) {
   return size == sizeof(le_device_db_entry_t);
 }
 
-// @return success
-// @param index = entry_pos
+/**
+ * @brief TLV に index 番のエントリを保存する。
+ * @param index 保存するエントリのインデックス
+ * @param entry 保存するエントリの内容
+ * @return 保存成功時 true、失敗時 false
+ */
 static bool le_device_db_tlv_store(int index, le_device_db_entry_t *entry) {
   btstack_assert(le_device_db_tlv_btstack_tlv_impl != NULL);
   btstack_assert(index >= 0);
@@ -139,7 +154,11 @@ static bool le_device_db_tlv_store(int index, le_device_db_entry_t *entry) {
   return result == 0;
 }
 
-// @param index = entry_pos
+/**
+ * @brief TLV から index 番のエントリを削除する。
+ * @param index 削除するエントリのインデックス
+ * @return 削除成功時 true、失敗時 false
+ */
 static bool le_device_db_tlv_delete(int index) {
   btstack_assert(le_device_db_tlv_btstack_tlv_impl != NULL);
   btstack_assert(index >= 0);
@@ -151,12 +170,15 @@ static bool le_device_db_tlv_delete(int index) {
   return true;
 }
 
+/**
+ * @brief TLV を全走査し、使用中スロットと有効件数を再構築する。
+ */
 static void le_device_db_tlv_scan(void) {
   int i;
   num_valid_entries = 0;
   memset(entry_map, 0, sizeof(entry_map));
   for (i = 0; i < NVM_NUM_DEVICE_DB_ENTRIES; i++) {
-    // lookup entry
+    // エントリの有無を確認する
     le_device_db_entry_t entry;
     if (!le_device_db_tlv_fetch(i, &entry))
       continue;
@@ -167,38 +189,60 @@ static void le_device_db_tlv_scan(void) {
   log_info("num valid le device entries %u", (unsigned int)num_valid_entries);
 }
 
+/**
+ * @brief LE Device DB の初期化状態を確認する。
+ */
 void le_device_db_init(void) {
   if (!le_device_db_tlv_btstack_tlv_impl) {
     log_error("btstack_tlv not initialized");
   }
 }
 
-// not used
+// 現在の実装では未使用
 void le_device_db_set_local_bd_addr(bd_addr_t bd_addr) { (void)bd_addr; }
 
-// @return number of device in db
+/**
+ * @brief DB 内の有効デバイス数を返す。
+ * @return DB 内の有効デバイス数
+ */
 int le_device_db_count(void) { return num_valid_entries; }
 
+/**
+ * @brief DB に保存可能な最大デバイス数を返す。
+ * @return DB に保存可能な最大デバイス数
+ */
 int le_device_db_max_count(void) { return NVM_NUM_DEVICE_DB_ENTRIES; }
 
+/**
+ * @brief 指定インデックスのデバイス情報を削除する。
+ * @param index 削除するデバイスのインデックス
+ */
 void le_device_db_remove(int index) {
   btstack_assert(index >= 0);
   btstack_assert(index < le_device_db_max_count());
 
-  // check if entry exists
+  // 対象エントリが存在しない場合は何もしない
   if (entry_map[index] == 0u)
     return;
 
-  // delete entry in TLV
+  // TLV から削除する
   le_device_db_tlv_delete(index);
 
-  // mark as unused
+  // 未使用スロットとしてマークする
   entry_map[index] = 0;
 
-  // keep track
+  // 有効件数を更新する
   num_valid_entries--;
 }
 
+/**
+ * @brief デバイス情報を追加または更新し、使用したインデックスを返す。
+ * 既に同じアドレスのエントリが存在する場合はそれを更新し、存在しない場合は新規追加する。
+ * @param addr_type デバイスのアドレスタイプ
+ * @param addr デバイスのアドレス
+ * @param irk デバイスの IRK
+ * @return 追加または更新したエントリのインデックス、保存に失敗した場合は -1
+ */
 int le_device_db_add(int addr_type, bd_addr_t addr, sm_key_t irk) {
 
   uint32_t highest_seq_nr = 0;
@@ -208,22 +252,22 @@ int le_device_db_add(int addr_type, bd_addr_t addr, sm_key_t irk) {
   int index_for_empty = -1;
   bool new_entry = false;
 
-  // find unused entry in the used list
+  // 既存アドレス、空きスロット、最も古いスロットを同時に探す
   int i;
   for (i = 0; i < NVM_NUM_DEVICE_DB_ENTRIES; i++) {
     if (entry_map[i] != 0u) {
       le_device_db_entry_t entry;
       le_device_db_tlv_fetch(i, &entry);
-      // found addr?
+      // 同じアドレスの既存エントリがあるか
       if ((memcmp(addr, entry.addr, 6) == 0) &&
           (addr_type == entry.addr_type)) {
         index_for_addr = i;
       }
-      // update highest seq nr
+      // 最新のシーケンス番号を更新する
       if (entry.seq_nr > highest_seq_nr) {
         highest_seq_nr = entry.seq_nr;
       }
-      // find entry with lowest seq nr
+      // 最も古いエントリを記録する
       if ((index_for_lowest_seq_nr == -1) || (entry.seq_nr < lowest_seq_nr)) {
         index_for_lowest_seq_nr = i;
         lowest_seq_nr = entry.seq_nr;
@@ -245,13 +289,13 @@ int le_device_db_add(int addr_type, bd_addr_t addr, sm_key_t irk) {
   } else if (index_for_lowest_seq_nr >= 0) {
     index_to_use = index_for_lowest_seq_nr;
   } else {
-    // should not happen
+    // 使用可能な候補が無い場合は異常系として扱う
     return -1;
   }
 
   log_info("new entry for index %u", (unsigned int)index_to_use);
 
-  // store entry at index
+  // 選択したインデックスにエントリを書き込む
   le_device_db_entry_t entry;
   log_info("LE Device DB adding type %u - %s", addr_type, bd_addr_to_str(addr));
   log_info_key("irk", irk);
@@ -266,16 +310,16 @@ int le_device_db_add(int addr_type, bd_addr_t addr, sm_key_t irk) {
   entry.remote_counter = 0;
 #endif
 
-  // store
+  // TLV に保存する
   bool ok = le_device_db_tlv_store(index_to_use, &entry);
   if (!ok) {
     log_error("tag store failed");
     return -1;
   }
-  // set in entry_mape
+  // 使用中マップを更新する
   entry_map[index_to_use] = 1;
 
-  // keep track - don't increase if old entry found or replaced
+  // 新規追加時のみ有効件数を増やす
   if (new_entry) {
     num_valid_entries++;
   }
@@ -283,7 +327,13 @@ int le_device_db_add(int addr_type, bd_addr_t addr, sm_key_t irk) {
   return index_to_use;
 }
 
-// get device information: addr type and address
+/**
+ * @brief デバイス情報を取得する。
+ * @param index 取得するデバイスのインデックス
+ * @param addr_type デバイスタイプの格納先、NULL の場合は取得しない
+ * @param addr デバイスアドレスの格納先、NULL の場合は取得しない
+ * @param irk デバイス IRK の格納先、NULL の場合は取得しない
+ */
 void le_device_db_info(int index, int *addr_type, bd_addr_t addr,
                        sm_key_t irk) {
 
@@ -306,6 +356,17 @@ void le_device_db_info(int index, int *addr_type, bd_addr_t addr,
     (void)memcpy(irk, entry.irk, 16);
 }
 
+/**
+ * @brief デバイスの暗号化情報を保存する。
+ * @param index 保存するデバイスのインデックス
+ * @param ediv EDIV 値
+ * @param rand ランダム値
+ * @param ltk LTK 値
+ * @param key_size キーサイズ
+ * @param authenticated 認証フラグ
+ * @param authorized 認可フラグ
+ * @param secure_connection セキュアコネクションフラグ
+ */
 void le_device_db_encryption_set(int index, uint16_t ediv, uint8_t rand[8],
                                  sm_key_t ltk, int key_size, int authenticated,
                                  int authorized, int secure_connection) {
@@ -339,6 +400,18 @@ void le_device_db_encryption_set(int index, uint16_t ediv, uint8_t rand[8],
   }
 }
 
+/**
+ * @brief デバイスの暗号化情報を取得する。
+ * @param index 取得するデバイスのインデックス
+ * @param ediv EDIV 値の格納先、NULL の場合は取得しない
+ * @param rand ランダム値の格納先、NULL の場合は取得しない
+ * @param ltk LTK 値の格納先、NULL の場合は取得しない
+ * @param key_size キーサイズの格納先、NULL の場合は取得しない
+ * @param authenticated 認証フラグの格納先、NULL の場合は取得しない
+ * @param authorized 認可フラグの格納先、NULL の場合は取得しない
+ * @param secure_connection セキュアコネクションフラグの格納先、NULL
+ * の場合は取得しない
+ */
 void le_device_db_encryption_get(int index, uint16_t *ediv, uint8_t rand[8],
                                  sm_key_t ltk, int *key_size,
                                  int *authenticated, int *authorized,
@@ -494,6 +567,9 @@ void le_device_db_local_counter_set(int index, uint32_t counter) {
 
 #endif
 
+/**
+ * @brief DB 内の全デバイス情報をログ出力する。
+ */
 void le_device_db_dump(void) {
   log_info("LE Device DB dump, devices: %d", le_device_db_count());
   uint32_t i;
@@ -515,6 +591,11 @@ void le_device_db_dump(void) {
   }
 }
 
+/**
+ * @brief btstack_tlv を使って LE Device DB を永続化するための初期化関数。
+ * @param btstack_tlv_impl btstack_tlv の実装
+ * @param btstack_tlv_context btstack_tlv のコンテキスト
+ */
 void le_device_db_tlv_configure(const btstack_tlv_t *btstack_tlv_impl,
                                 void *btstack_tlv_context) {
   le_device_db_tlv_btstack_tlv_impl = btstack_tlv_impl;
