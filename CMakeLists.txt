@@ -33,6 +33,13 @@ project(picomk C CXX ASM)
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
 
+# Override BTstack's default LE device DB implementation with our local one.
+get_target_property(PICO_BTSTACK_BLE_SOURCES pico_btstack_ble INTERFACE_SOURCES)
+if (PICO_BTSTACK_BLE_SOURCES)
+    list(REMOVE_ITEM PICO_BTSTACK_BLE_SOURCES "${PICO_BTSTACK_PATH}/src/ble/le_device_db_tlv.c")
+    set_property(TARGET pico_btstack_ble PROPERTY INTERFACE_SOURCES "${PICO_BTSTACK_BLE_SOURCES}")
+endif()
+
 # Add executable. Default name is the project name, version 0.1
 file(GLOB SRC_FILES CONFIGURE_DEPENDS *.c ble/*.c pinnacle/*.c keyboard/*.c led/*.c settings/*.c hid/*.c state/*.c peripheral/*.c usb/*.c)
 add_executable(picomk ${SRC_FILES})
